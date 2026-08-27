@@ -1,26 +1,3 @@
-# import zipfile
-# import os
-
-# def get_filenames(zip_path):
-#     with zipfile.ZipFile(zip_path, 'r') as zf:
-#         # Get list of all items and strip folder paths
-#         return {os.path.basename(name) for name in zf.namelist() if not name.endswith('/')}
-
-# def compare_zips(zip1, zip2):
-#     files1 = get_filenames(zip1)
-#     files2 = get_filenames(zip2)
-    
-#     unique_to_1 = files1 - files2
-#     unique_to_2 = files2 - files1
-#     common = files1 & files2
-
-#     print(f"Files only in {zip1}: {unique_to_1}")
-#     print(f"Files only in {zip2}: {unique_to_2}")
-#     print(f"Files in both: {common}")
-
-# Replace with your actual file paths
-#compare_zips('2025_Q4.zip', '2026_Q1.zip')
-
 import argparse
 import os
 from zipfile import ZipFile
@@ -45,8 +22,36 @@ def get_files(zip_path):
                     filenames.add(fullname)
     return filenames
 
+def write_diff_output( output_path, zip1_path, zip2_path, files1, files2,
+        only_in_zip1, only_in_zip2, common_files):
+    """Writes the full diff output to a text file."""
+    with open( output_path, "w" ) as f:
+        f.write("=" * 30 + "\n")
+        f.write("Comparison Report\n")
+        f.write(f"Zip1: {zip1_path} - {len(files1)} files\n")
+        f.write(f"    {len(only_in_zip1)} files ONLY found in Zip1\n")
+        f.write(f"Zip2: {zip2_path} - {len(files2)} files\n")
+        f.write(f"    {len(only_in_zip2)} files ONLY found in Zip2\n")
+        f.write(f"{len(common_files)} files in common\n")
+        f.write("=" * 30 + "\n")
 
-def compare_zips(zip1_path, zip2_path):
+        f.write("Files ONLY in zip1:\n")
+        if only_in_zip1:
+            for file in only_in_zip1:
+                f.write(f"   {file}\n")
+        else:
+            f.write("   None\n")
+
+        f.write("Files ONLY in zip2:\n")
+        if only_in_zip2:
+            for file in only_in_zip2:
+                f.write(f"   {file}\n")
+        else:
+            f.write("   None\n")        
+
+
+
+def compare_zips(zip1_path, zip2_path, output_path=None):
     """Compares unique filenames between two zip archives."""
     # Check if files exist
     if not os.path.exists(zip1_path):
@@ -88,6 +93,13 @@ def compare_zips(zip1_path, zip2_path):
     else:
         print("  None")
 
+    # Write output, when arg is present
+    if (output_path):
+        write_diff_output(
+            output_path, zip1_path, zip2_path, files1, files2,
+            only_in_zip1, only_in_zip2, common_files)
+        print(f"\nFull diff output written to {output_path}")
+
 
 if __name__ == "__main__":
     # Handle command line inputs using argparse
@@ -96,7 +108,11 @@ if __name__ == "__main__":
     )
     parser.add_argument("zip1", help="Path to the first ZIP file")
     parser.add_argument("zip2", help="Path to the second ZIP file")
+    parser.add_argument("-o", "--output",
+        help="Name of a text file to write a full comparison diff output file",
+        default=None,
+    )
 
     args = parser.parse_args()
 
-    compare_zips(args.zip1, args.zip2)
+    compare_zips(args.zip1, args.zip2, args.output)
